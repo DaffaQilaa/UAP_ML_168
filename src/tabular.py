@@ -9,56 +9,43 @@ model = load_model(model_path)
 
 # Expected features from the trained model
 expected_features = [
-    'age', 'job', 'marital', 'education', 'default', 'balance', 'housing', 'loan', 'contact',
-    'day', 'month', 'duration', 'campaign', 'pdays', 'previous', 'poutcome'
+    'service', 'cleanliness', 'value', 'location', 'sleep_quality',
+    'rooms', 'check_in_front_desk', 'bussiness_service', 'date_stayed', 'via_mobile'
 ]
 
 # Streamlit app title
-st.title("Aplikasi Klasifikasi Data Tabular - Banking Dataset")
+st.title("Aplikasi Penilaian Hotel - Prediksi Rating Keseluruhan")
 
 # User input
-st.write("Masukkan data untuk diklasifikasikan:")
+st.write("Masukkan data penilaian masing-masing aspek berikut:")
 
 # Collect user inputs
-age = st.number_input("Usia", min_value=18, max_value=100, value=30)
-job = st.selectbox("Pekerjaan", options=['admin.', 'blue-collar', 'entrepreneur', 'housemaid', 'management',
-                                          'retired', 'student', 'technician', 'services', 'unemployed', 'unknown'])
-marital = st.selectbox("Status Perkawinan", options=['divorced', 'married', 'single', 'unknown'])
-education = st.selectbox("Pendidikan", options=['primary', 'secondary', 'tertiary', 'unknown'])
-default = st.selectbox("Apakah memiliki kredit macet?", options=['yes', 'no'])
-balance = st.number_input("Saldo", value=0.0)
-housing = st.selectbox("Apakah memiliki pinjaman perumahan?", options=['yes', 'no'])
-loan = st.selectbox("Apakah memiliki pinjaman?", options=['yes', 'no'])
-contact = st.selectbox("Tipe Kontak", options=['cellular', 'telephone'])
-day = st.number_input("Hari Terakhir Dihubungi", min_value=1, max_value=31, value=1)
-month = st.selectbox("Bulan Terakhir Dihubungi", options=['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul',
-                                                           'aug', 'sep', 'oct', 'nov', 'dec'])
-duration = st.number_input("Durasi Kontak (detik)", value=0)
-campaign = st.number_input("Jumlah Kontak dalam Kampanye", value=1)
-pdays = st.number_input("Jumlah Hari Sejak Kontak Terakhir", value=-1)  # -1 jika tidak pernah dihubungi
-previous = st.number_input("Jumlah Kontak Sebelumnya", value=0)
-poutcome = st.selectbox("Hasil Kontak Sebelumnya", options=['failure', 'nonexistent', 'success'])
+service = st.slider("Layanan (Service)", min_value=1, max_value=5, value=3)
+cleanliness = st.slider("Kebersihan (Cleanliness)", min_value=1, max_value=5, value=3)
+value = st.slider("Nilai (Value)", min_value=1, max_value=5, value=3)
+location = st.slider("Lokasi (Location)", min_value=1, max_value=5, value=3)
+sleep_quality = st.slider("Kualitas Tidur (Sleep Quality)", min_value=1, max_value=5, value=3)
+rooms = st.slider("Kamar (Rooms)", min_value=1, max_value=5, value=3)
+check_in_front_desk = st.slider("Check-in & Front Desk", min_value=1, max_value=5, value=3)
+bussiness_service = st.slider("Layanan Bisnis (Business Service)", min_value=1, max_value=5, value=3)
+date_stayed = st.number_input("Tanggal Menginap (Tanggal format angka)", min_value=1, max_value=31, value=15)
+via_mobile = st.selectbox("Apakah rating melalui aplikasi mobile?", options=['yes', 'no'])
 
-# When the classify button is clicked
-if st.button("Klasifikasikan"):
+# Convert 'via_mobile' to binary
+def convert_via_mobile(value):
+    return 1 if value == 'yes' else 0
+
+via_mobile = convert_via_mobile(via_mobile)
+
+# When the predict button is clicked
+if st.button("Prediksi Rating Keseluruhan"):
     # Create DataFrame from inputs
-    input_data = pd.DataFrame([[age, job, marital, education, default, balance, housing, loan, contact,
-                                 day, month, duration, campaign, pdays, previous, poutcome]],
-                               columns=['age', 'job', 'marital', 'education', 'default', 'balance',
-                                        'housing', 'loan', 'contact', 'day', 'month', 'duration',
-                                        'campaign', 'pdays', 'previous', 'poutcome'])
+    input_data = pd.DataFrame([[
+        service, cleanliness, value, location, sleep_quality, rooms,
+        check_in_front_desk, bussiness_service, date_stayed, via_mobile
+    ]], columns=expected_features)
 
-    # One-hot encoding for categorical features
-    input_data = pd.get_dummies(input_data, columns=['job', 'marital', 'education', 'default',
-                                                     'housing', 'loan', 'contact', 'month', 'poutcome'], drop_first=True)
-
-    # Add missing columns with zero and ensure correct column order
-    for col in expected_features:
-        if col not in input_data.columns:
-            input_data[col] = 0
-    input_data = input_data[expected_features]
-
-    # Convert to numpy array
+    # Ensure input matches expected features
     input_array = input_data.to_numpy(dtype=np.float32)
 
     # Validate input dimensions
@@ -67,5 +54,5 @@ if st.button("Klasifikasikan"):
     else:
         # Predict with the model
         prediction = model.predict(input_array)
-        result = "Ya" if prediction[0] > 0.5 else "Tidak"
-        st.write(f"Hasil Klasifikasi: Apakah pelanggan akan berlangganan deposito berjangka? {result}")
+        overall_rating = round(prediction[0][0], 2)
+        st.write(f"Perkiraan Rating Keseluruhan: {overall_rating} dari 5")
